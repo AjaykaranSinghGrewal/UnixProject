@@ -1,0 +1,59 @@
+#!/bin/bash
+
+function func(){
+
+if [ -e $pathname ]
+then
+
+read -p "File already exists. Do you want to overwrite? y/n" response
+
+  if [[ $response = "y" || $response = "Y" || $response = "yes" ]]
+  then
+    mv $HOME/deleted/$file $pathname
+    echo "The file $file has been moved to $pathname"
+    sed -i "/$file/d" $HOME/.restore.info
+
+  else
+    echo "File $file not moved"
+  fi
+
+else
+ mv $HOME/deleted/$file $pathname
+ echo "The file $file has been moved to $pathname"
+ sed -i "/$file/d" $HOME/.restore.info
+fi
+}
+
+
+for file in $*
+do
+
+if [ ! -e $HOME/deleted/$file ]
+then
+echo "File $file does not exist"
+exit 2
+
+elif [ $# -eq 0 ]
+then
+echo "No filename provided. Please provide a filename you want to restore."
+exit 2
+
+else
+pathname=$(fgrep $file $HOME/.restore.info | cut -d: -f2)
+#echo $pathname
+directoryName=$(dirname $pathname)
+#echo $directoryName
+
+if [ -e $directoryName ]
+then
+func
+
+else
+mkdir -p $directoryName
+func
+fi
+
+fi
+done
+
+#END SCRIPT

@@ -1,0 +1,163 @@
+#!/bin/bash
+
+if [ ! -d "$HOME/deleted" ]
+then
+mkdir $HOME/deleted
+fi
+
+if [ ! -f "$HOME/.restore.info" ]
+then
+touch $HOME/.restore.info
+fi
+
+safeFileName=safe_rm
+i=0
+v=0
+r=0
+
+while getopts ivr opt
+do
+  case $opt in
+    i) i=1;;
+    v) v=1;;
+    r) r=1;;
+  esac
+done
+shift $(($OPTIND-1))
+
+
+#file does not exist
+#directory argument
+#no arguments
+#safe_rm
+
+for file in $*
+do
+
+if [ ! -e $file ]
+then
+echo "File $file does not exist"
+exit 2
+
+elif [ $# -eq 0 ]
+then
+echo "No arguments provided"
+exit 2
+
+elif [[ -d $file && $r -eq 0 ]]
+then
+echo "$file is a directory. Cannot remove a directory"
+exit 2
+
+elif [ $file = $safeFileName ]
+then
+echo "safe_rm file cannot be deleted"
+exit 2
+
+elif [[ -d $file && $r -eq 1 ]]
+then
+
+file_find=$(find $file | sort -r)
+
+for f in $file_find
+do
+if [ -f $f ]
+then
+absolutePath=$(readlink -f $f)
+inode=$(stat -c %i $f)
+fileName=$(basename $f)
+totalFileName=$fileName"_"$inode
+mv $f $HOME/deleted/$totalFileName
+echo $totalFileName:$absolutePath >> $HOME/.restore.info
+
+elif [ -d $f ]
+then
+rm -r $f
+fi
+done
+exit 2
+
+else
+
+#inode=$( ls -i basename $1)
+#fileName=$(echo $inode | tr ' ' '_')
+
+inode=$(stat -c %i $file)
+#echo $inode
+
+fileName=$(basename $file)
+#echo $fileName
+
+totalFileName=$fileName"_"$inode
+echo $totalFileName
+
+  if [[ $i -eq 1 && $v -eq 0 ]]
+  then
+    #echo $i $v
+
+    echo "Do you really want to delete $file? Press '1' for Yes and '0' for No"
+    read response
+
+    if [ $response -eq 1 ]
+    then
+        mv $file $HOME/deleted/$totalFileName
+        #echo "$file has been removed."
+        absolutePath=$(readlink -f $file)
+        echo $totalFileName:$absolutePath >> $HOME/.restore.info
+       # echo "$absolutePath appended to .restore.info"
+
+    elif [ $response -eq 0 ]
+    then
+        echo "$file has not been deleted."
+
+    else
+        echo "Incorrect Response"
+        exit 1
+
+    fi
+
+  elif [[ $i -eq 0 && $v -eq 1 ]]
+  then
+    #echo $i $v
+    mv $file $HOME/deleted/$totalFileName
+    echo "$file has been removed."
+    absolutePath=$(readlink -f $file)
+ echo $totalFileName:$absolutePath >> $HOME/.restore.info
+    echo "$absolutePath appended to .restore.info"
+
+
+  elif [[ $i -eq 1 && $v -eq 1 ]]
+  then
+    #echo $i $v
+    echo "Do you really want to delete $file? Press '1' for Yes and '0' for No"
+    read response
+
+    if [ $response -eq 1 ]
+    then
+        mv $file $HOME/deleted/$totalFileName
+        echo "$file has been removed."
+        absolutePath=$(readlink -f $file)
+        echo $totalFileName:$absolutePath >> $HOME/.restore.info
+        echo "$absolutePath appended to .restore.info"
+
+    elif [ $response -eq 0 ]
+    then
+        echo "$file has not been deleted."
+
+    else
+        echo "Incorrect Response"
+        exit 2
+
+    fi
+
+  else
+    #echo $i $v
+    #echo "DELETE THE FILES WITHOUT ASKING OR SHOWING"
+    mv $file $HOME/deleted/$totalFileName
+
+  fi
+
+fi
+
+done
+#END OF SCRIPT
